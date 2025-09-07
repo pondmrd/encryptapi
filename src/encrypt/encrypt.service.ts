@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { EncryptedData } from "src/dto/EncryptedData";
-import { PayloadData } from "src/dto/PayloadData";
+import { EncryptedDataDto } from "./dto/encrypted-data.dto";
+import { PayloadDataDto } from "./dto/payload-data.dto";
 import crypto from "crypto";
 import dotenv from 'dotenv';
 
@@ -10,30 +10,24 @@ dotenv.config()
 export class EncryptService {
 
     iv: Buffer = crypto.randomBytes(16)
-    
+    aesKey: Buffer = crypto.randomBytes(32)
+
     publicKeyPem = process.env.PUBLIC_KEY!
     privateKeyPem = process.env.PRIVATE_KEY!
 
-    getApiDocs() {
-
-        return this.publicKeyPem 
-    }
-
-    getEncryptData(payload: string): EncryptedData {
-        const aesKey: Buffer = crypto.randomBytes(32)
-
-        const data: EncryptedData = {
-            data1: this.getData1(aesKey),
-            data2: this.getData2(payload, aesKey)
+    getEncryptData(payload: string): EncryptedDataDto {
+        const data: EncryptedDataDto = {
+            data1: this.getData1(this.aesKey),
+            data2: this.getData2(payload, this.aesKey)
         }
         return data
     }
 
-    getDecryptData(encryptedData: EncryptedData): PayloadData {
+    getDecryptData(encryptedData: EncryptedDataDto): PayloadDataDto {
         const aesKey = this.getAESKey(encryptedData)
         const payload = this.getPayload(aesKey, encryptedData.data2)
 
-        const data: PayloadData = {
+        const data: PayloadDataDto = {
             payload: payload
         }
         return data;
@@ -60,7 +54,7 @@ export class EncryptService {
         return encryptedAesKeyWithPublic.toString("base64")
     }
 
-    getAESKey(encryptedData: EncryptedData): Buffer {
+    getAESKey(encryptedData: EncryptedDataDto): Buffer {
         const decryptedAesKey = crypto.privateDecrypt(
             {
                 key: this.privateKeyPem,
